@@ -4,6 +4,7 @@ import pygame
 Game_width = 800
 Game_height = 800
 
+
 Player_x = Game_width/2
 Player_y = Game_height/2
 Player_width = 50
@@ -15,7 +16,7 @@ Friction = 0.4
 Player_Velocity_x = 5
 Player_Velocity_y = -10
 
-Floor_y = Game_height * 3/4
+
 Tile_size = 32
 
 pygame.init()
@@ -39,19 +40,37 @@ class Tile(pygame.Rect):
         pygame.Rect.__init__(self, x, y, Tile_size, Tile_size)
         self.image = (0,128,0)
 
+class Hazard(pygame.Rect):
+    def __init__(self,x,y):
+        pygame.Rect.__init__(self,x,y, Tile_size, Tile_size)
+        self.image = (255,0,0)
+
 def create_map():
-    for i in range(10):
-        tile = Tile(player.x + i*Tile_size, player.y + Tile_size*3)
+    for i in range(20):
+        tile = Tile(0 + i*Tile_size, player.y + Tile_size*3)
         tiles.append(tile)
 
     for h in range(1):
-        hazard = Tile
+        hazard = Hazard(Tile_size*3, (h+12)*Tile_size)
+        hazards.append(hazard)
 
 def check_tile_collision():
     for tile in tiles:
         if player.colliderect(tile):
             return tile
     return None
+
+def check_hazard_collision():
+    for hazard in hazards:
+        if player.colliderect(hazard):
+            return hazard
+    return None
+
+def hazard_death():
+    hazard = check_hazard_collision()
+    if hazard is not None:
+        player.x = 0
+        player.y = 0
 
 def check_tile_collisions_x():
     tile = check_tile_collision()
@@ -72,20 +91,19 @@ def check_tile_collisions_y():
             player.jumping = False
         player.velocity_y = 0
 
+def move_player_x(velocity_x):
+    move_map_x(velocity_x)
+
+def move_map_x(velocity_x):
+    for tile in tiles:
+        tile.x += velocity_x
+    
+    for hazard in hazards:
+        hazard.x += velocity_x
+
+    #for (item) in class etc.
+
 def move():
-    if player.direction == "left" and player.velocity_x < 0:
-        player.velocity_x += Friction
-    elif player.direction == "right" and player.velocity_x > 0:
-        player.velocity_x -= Friction
-    else:
-        player.velocity_x = 0
-
-    player.x += player.velocity_x
-    if player.x < 0:
-        player.x = 0
-    elif player.x + player.width > Game_width:
-        player.x = Game_width - Player_width
-
     check_tile_collisions_x()
 
     player.velocity_y += Gravity
@@ -93,10 +111,7 @@ def move():
 
     check_tile_collisions_y()
 
-    if player.y + player.height > Floor_y:
-        player.y = Floor_y - player.height
-        player.jumping = False
-
+    hazard_death()
 
 def draw():
     screen.fill((20,18,167))
@@ -104,10 +119,13 @@ def draw():
 
     for tile in tiles:
         pygame.draw.rect(screen, (0,128,0), tile)
+    
+    for hazard in hazards:
+        pygame.draw.rect(screen, (255,0,0), hazard)
 
 player = Player()
 tiles = []
-hazard = []
+hazards = []
 create_map()
 
 running = True
@@ -122,11 +140,11 @@ while running:
         player.jumping = True
     
     if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-        player.velocity_x = - Player_Velocity_x
+        move_player_x(Player_Velocity_x)
         player.direction = "left"
     
     if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-        player.velocity_x =  Player_Velocity_x
+        move_player_x(-Player_Velocity_x)
         player.direction = "right"
     
     move()
